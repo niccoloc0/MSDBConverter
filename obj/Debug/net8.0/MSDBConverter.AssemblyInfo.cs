@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MSDBConverter")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4872c344e9245189ace7415bf6da6738b411396b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4edfe27f621d45c15f270829261b817553acd823")]
 [assembly: System.Reflection.AssemblyProductAttribute("MSDBConverter")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MSDBConverter")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
