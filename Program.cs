@@ -22,15 +22,23 @@ class Program
         int fileCount = GetFileCount(toConvertFolderPath);
         Console.WriteLine($"Contents of folder ({fileCount} files):");
 
-        string[] imageExtensions = { ".tif", ".tiff", ".jpg", ".jpeg", ".png" };
+        string[] imageExtensions = { ".tif", ".tiff", ".jpg", ".jpeg", ".png", 
+                                     ".3fr", ".ari", ".arw", ".bay", ".crw", ".cr2", ".cap", 
+                                     ".dcs", ".dcr", ".dng", ".drf", ".eip", ".erf", ".fff", 
+                                     ".gpr", ".iiq", ".k25", ".kdc", ".mdc", ".mef", ".mos", 
+                                     ".mrw", ".nef", ".nrw", ".obm", ".orf", ".pef", ".ptx", 
+                                     ".pxn", ".r3d", ".raf", ".raw", ".rwl", ".rw2", ".rwz", 
+                                     ".sr2", ".srf", ".srw", ".x3f" };
         string[] imageFiles = GetFilesWithExtensions(toConvertFolderPath, imageExtensions);
 
         Stampa(imageFiles);
 
         if (imageFiles.Length > 0)
         {
-            // Ensure the "Converted" folder exists
-            Directory.CreateDirectory(convertedFolderPath);
+            // Create timestamped subfolder
+            string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+            string sessionFolderPath = Path.Combine(convertedFolderPath, timestamp);
+            Directory.CreateDirectory(sessionFolderPath);
 
             int totalFiles = imageFiles.Length;
             int convertedFiles = 0;
@@ -44,7 +52,7 @@ class Program
                 string imageFile = imageFiles[i];
                 threads[i] = new Thread(() =>
                 {
-                    ConvertToJpg(imageFile, convertedFolderPath);
+                    ConvertToJpg(imageFile, sessionFolderPath);
                     lock (progressLock)
                     {
                         convertedFiles++;
@@ -60,7 +68,7 @@ class Program
             }
 
             Console.WriteLine("\nConversion completed!");
-            Console.WriteLine($"The converted images have been placed in the '{convertedFolderPath}' folder.");
+            Console.WriteLine($"The converted images have been placed in the '{sessionFolderPath}' folder.");
         }
         else
         {

@@ -473,11 +473,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Documenti\\Programmi\\MSDBConverter\\MSDBConverter.csproj",
+      "projectUniqueName": "C:\\Users\\NC\\Documents\\Dev\\Def\\MSDBConverter\\MSDBConverter\\MSDBConverter.csproj",
       "projectName": "MSDBConverter",
-      "projectPath": "D:\\Documenti\\Programmi\\MSDBConverter\\MSDBConverter.csproj",
+      "projectPath": "C:\\Users\\NC\\Documents\\Dev\\Def\\MSDBConverter\\MSDBConverter\\MSDBConverter.csproj",
       "packagesPath": "C:\\Users\\NC\\.nuget\\packages\\",
-      "outputPath": "D:\\Documenti\\Programmi\\MSDBConverter\\obj\\",
+      "outputPath": "C:\\Users\\NC\\Documents\\Dev\\Def\\MSDBConverter\\MSDBConverter\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\NC\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -544,7 +544,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.301/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "c:\\program files\\dotnet\\sdk\\8.0.301/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
