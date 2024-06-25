@@ -52,7 +52,7 @@ class Program
                 string imageFile = imageFiles[i];
                 threads[i] = new Thread(() =>
                 {
-                    ConvertToJpg(imageFile, sessionFolderPath);
+                    ConvertToJpgOrCopy(imageFile, sessionFolderPath);
                     lock (progressLock)
                     {
                         convertedFiles++;
@@ -97,17 +97,28 @@ class Program
                         .ToArray();
     }
 
-    static void ConvertToJpg(string imagePath, string convertedFolderPath, double maxSizeInMB = 7.5, int maxDimension = 7500)
+    static void ConvertToJpgOrCopy(string imagePath, string convertedFolderPath, double maxSizeInMB = 7.5, int maxDimension = 7500)
     {
         string outputFileName = Path.Combine(convertedFolderPath, Path.GetFileNameWithoutExtension(imagePath) + ".jpg");
 
         using var image = new MagickImage(imagePath);
+        
+        // Check if the original image meets the size and dimension requirements
+        FileInfo fileInfo = new FileInfo(imagePath);
+        if (fileInfo.Length <= maxSizeInMB * 1024 * 1024 && image.Width <= maxDimension && image.Height <= maxDimension)
+        {
+            // Copy the file as is
+            string copiedFileName = Path.Combine(convertedFolderPath, Path.GetFileName(imagePath));
+            File.Copy(imagePath, copiedFileName, true);
+            return;
+        }
+
+        // Otherwise, process the image
         if (image.Width > maxDimension || image.Height > maxDimension)
         {
             image.Resize(maxDimension, maxDimension);
         }
 
-        var metadata = image.GetExifProfile();
         int quality = CalculateCompressionQuality(image, maxSizeInMB);
 
         image.Quality = quality;

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\NC\\Documents\\Dev\\Def\\MSDBConverter\\MSDBConverter\\MSDBConverter.csproj": {}
+    "C:\\Users\\NC\\Documents\\Dev\\MSDBConverter\\MSDBConverter\\MSDBConverter\\MSDBConverter.csproj": {}
   },
   "projects": {
-    "C:\\Users\\NC\\Documents\\Dev\\Def\\MSDBConverter\\MSDBConverter\\MSDBConverter.csproj": {
+    "C:\\Users\\NC\\Documents\\Dev\\MSDBConverter\\MSDBConverter\\MSDBConverter\\MSDBConverter.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\NC\\Documents\\Dev\\Def\\MSDBConverter\\MSDBConverter\\MSDBConverter.csproj",
+        "projectUniqueName": "C:\\Users\\NC\\Documents\\Dev\\MSDBConverter\\MSDBConverter\\MSDBConverter\\MSDBConverter.csproj",
         "projectName": "MSDBConverter",
-        "projectPath": "C:\\Users\\NC\\Documents\\Dev\\Def\\MSDBConverter\\MSDBConverter\\MSDBConverter.csproj",
+        "projectPath": "C:\\Users\\NC\\Documents\\Dev\\MSDBConverter\\MSDBConverter\\MSDBConverter\\MSDBConverter.csproj",
         "packagesPath": "C:\\Users\\NC\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\NC\\Documents\\Dev\\Def\\MSDBConverter\\MSDBConverter\\obj\\",
+        "outputPath": "C:\\Users\\NC\\Documents\\Dev\\MSDBConverter\\MSDBConverter\\MSDBConverter\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\NC\\AppData\\Roaming\\NuGet\\NuGet.Config"

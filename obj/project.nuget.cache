@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "Z06B8AL5aEY=",
+  "dgSpecHash": "iCs2Du09dt4=",
   "success": true,
-  "projectFilePath": "C:\\Users\\NC\\Documents\\Dev\\Def\\MSDBConverter\\MSDBConverter\\MSDBConverter.csproj",
+  "projectFilePath": "C:\\Users\\NC\\Documents\\Dev\\MSDBConverter\\MSDBConverter\\MSDBConverter\\MSDBConverter.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\NC\\.nuget\\packages\\magick.net-q8-x64\\13.5.0\\magick.net-q8-x64.13.5.0.nupkg.sha512",
     "C:\\Users\\NC\\.nuget\\packages\\magick.net.core\\13.5.0\\magick.net.core.13.5.0.nupkg.sha512",
