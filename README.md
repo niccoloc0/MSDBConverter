@@ -2,7 +2,7 @@
 
 Have you ever found yourself spending considerable time converting/compressing and individually checking a large batch of images to ensure they meet [MovieStillsDB](https://www.moviestillsdb.com/)'s standards before uploading? If your answer is yes, then this tool is tailor-made for you!
 
-This tool efficiently converts and compresses multiple images simultaneously to adhere to MovieStillsDB's standards. It resizes images exceeding 7500 pixels in width or height while maintaining the original aspect ratio. Additionally, it compresses images surpassing 7.5 MB without compromising quality and seamlessly converts formats (tiff, tif, jpeg, jpg) to jpg, ensuring they are ready for hassle-free on-site uploads.
+This tool efficiently converts and compresses multiple images simultaneously to adhere to MovieStillsDB's standards. It resizes images exceeding 7500 pixels in width or height while maintaining the original aspect ratio. Additionally, it compresses images surpassing 7.5 MB without compromising quality and seamlessly converts formats (jpeg, png, tif, tiff) to jpg, ensuring they are ready for hassle-free on-site uploads.
 
 ## Usage
 
