@@ -2,175 +2,264 @@
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using ImageMagick;
 
 class Program
 {
-    static void Main()
+    private const string DefaultLegacyInputFolderName = "ToConvert";
+    private const string DefaultOutputSubfolderName = "Converted";
+    private const double MaxSizeInMB = 7.5;
+    private const int MaxDimension = 7500;
+
+    static void Main(string[] args)
     {
-        string toConvertFolderPath = "ToConvert";
-        string convertedFolderPath = "Converted";
+        string sourceDirectoryToProcess;
+        string outputFolderFullPath;
+        string operationModeMessage;
+        bool useLegacyExitPrompt = false;
 
-        if (!Directory.Exists(toConvertFolderPath))
+        string exeDirectory = Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory).TrimEnd(Path.DirectorySeparatorChar);
+        string currentWorkingDirectory = Path.GetFullPath(Directory.GetCurrentDirectory()).TrimEnd(Path.DirectorySeparatorChar);
+
+        string legacyInputPath = Path.Combine(exeDirectory, DefaultLegacyInputFolderName);
+        string legacyOutputParentPath = Path.Combine(exeDirectory, DefaultOutputSubfolderName);
+
+        if (args.Length == 0)
         {
-            Directory.CreateDirectory(toConvertFolderPath);
-            Console.WriteLine($"'{toConvertFolderPath}' folder does not exist, I have just created it for you! \nPlace your images in this folder and run the program again.");
-            return;
-        }
+            bool isExecutingFromExeDirectory = string.Equals(exeDirectory, currentWorkingDirectory, StringComparison.OrdinalIgnoreCase);
 
-        // Continue with the conversion process
-        int fileCount = GetFileCount(toConvertFolderPath);
-        Console.WriteLine($"Contents of folder ({fileCount} files):");
-
-        string[] imageExtensions = { ".tif", ".tiff", ".jpg", ".jpeg", ".png", 
-                                     ".3fr", ".ari", ".arw", ".bay", ".crw", ".cr2", ".cap", 
-                                     ".dcs", ".dcr", ".dng", ".drf", ".eip", ".erf", ".fff", 
-                                     ".gpr", ".iiq", ".k25", ".kdc", ".mdc", ".mef", ".mos", 
-                                     ".mrw", ".nef", ".nrw", ".obm", ".orf", ".pef", ".ptx", 
-                                     ".pxn", ".r3d", ".raf", ".raw", ".rwl", ".rw2", ".rwz", 
-                                     ".sr2", ".srf", ".srw", ".x3f" };
-        string[] imageFiles = GetFilesWithExtensions(toConvertFolderPath, imageExtensions);
-
-        Stampa(imageFiles);
-
-        if (imageFiles.Length > 0)
-        {
-            // Create timestamped subfolder
-            string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-            string sessionFolderPath = Path.Combine(convertedFolderPath, timestamp);
-            Directory.CreateDirectory(sessionFolderPath);
-
-            int totalFiles = imageFiles.Length;
-            int convertedFiles = 0;
-            object progressLock = new object();
-
-            Console.WriteLine("Converting...");
-
-            Thread[] threads = new Thread[imageFiles.Length];
-            for (int i = 0; i < imageFiles.Length; i++)
+            if (isExecutingFromExeDirectory)
             {
-                string imageFile = imageFiles[i];
-                threads[i] = new Thread(() =>
+                if (!Directory.Exists(legacyInputPath))
                 {
-                    ConvertToJpgOrCopy(imageFile, sessionFolderPath);
-                    lock (progressLock)
-                    {
-                        convertedFiles++;
-                        UpdateProgressBar(convertedFiles, totalFiles);
-                    }
-                });
-                threads[i].Start();
-            }
-
-            foreach (Thread thread in threads)
-            {
-                thread.Join();
-            }
-
-            Console.WriteLine("\nConversion completed!");
-            Console.WriteLine($"The converted images have been placed in the '{sessionFolderPath}' folder.");
-        }
-        else
-        {
-            Console.WriteLine($"No image files found in '{toConvertFolderPath}' folder.");
-        }
-    }
-
-    public static void Stampa(string[] imageFiles)
-    {
-        foreach (string imageFile in imageFiles)
-        {
-            string filename = Path.GetFileName(imageFile);
-            Console.WriteLine("- " + filename);
-        }
-    }
-
-    static int GetFileCount(string folderPath)
-    {
-        return Directory.GetFiles(folderPath, "*.*", SearchOption.AllDirectories).Length;
-    }
-
-    static string[] GetFilesWithExtensions(string folderPath, string[] extensions)
-    {
-        return Directory.GetFiles(folderPath, "*.*")
-                        .Where(file => extensions.Contains(Path.GetExtension(file).ToLower()))
-                        .ToArray();
-    }
-
-    static void ConvertToJpgOrCopy(string imagePath, string convertedFolderPath, double maxSizeInMB = 7.5, int maxDimension = 7500)
-    {
-        string outputFileName = Path.Combine(convertedFolderPath, Path.GetFileNameWithoutExtension(imagePath) + ".jpg");
-
-        using var image = new MagickImage(imagePath);
-        
-        // Check if the original image meets the size and dimension requirements
-        FileInfo fileInfo = new FileInfo(imagePath);
-        if (fileInfo.Length <= maxSizeInMB * 1024 * 1024 && image.Width <= maxDimension && image.Height <= maxDimension)
-        {
-            // Copy the file as is
-            string copiedFileName = Path.Combine(convertedFolderPath, Path.GetFileName(imagePath));
-            File.Copy(imagePath, copiedFileName, true);
-            return;
-        }
-
-        // Otherwise, process the image
-        if (image.Width > maxDimension || image.Height > maxDimension)
-        {
-            image.Resize(maxDimension, maxDimension);
-        }
-
-        int quality = CalculateCompressionQuality(image, maxSizeInMB);
-
-        image.Quality = quality;
-        image.Format = MagickFormat.Jpg;
-        image.Write(outputFileName);
-    }
-
-    static int CalculateCompressionQuality(MagickImage image, double maxSizeInMB)
-    {
-        const int maxQuality = 100;
-        const int minQuality = 1;
-        int quality = maxQuality;
-
-        while (true)
-        {
-            using var compressedImage = new MagickImage(image);
-            compressedImage.Quality = quality;
-            compressedImage.Format = MagickFormat.Jpg;
-
-            using var stream = new MemoryStream();
-            compressedImage.Write(stream);
-
-            if (stream.Length > maxSizeInMB * 1024 * 1024)
-            {
-                quality -= 10;
-                if (quality < minQuality)
+                    Directory.CreateDirectory(legacyInputPath);
+                    Console.WriteLine($"'{legacyInputPath}' folder did not exist. It has been created for you.");
+                    Console.WriteLine($"Place your images in this folder and run the program again.");
+                    Console.WriteLine("Press any key to exit.");
+                    Console.ReadKey();
+                    return;
+                }
+                else
                 {
-                    quality = minQuality;
-                    break;
+                    sourceDirectoryToProcess = legacyInputPath;
+                    outputFolderFullPath = legacyOutputParentPath;
+                    operationModeMessage = $"MSDBConverter :: Legacy mode. Input: '{sourceDirectoryToProcess}'";
+                    useLegacyExitPrompt = true;
                 }
             }
             else
             {
-                break;
+                sourceDirectoryToProcess = currentWorkingDirectory;
+                outputFolderFullPath = Path.Combine(currentWorkingDirectory, DefaultOutputSubfolderName);
+                operationModeMessage = $"MSDBConverter :: CLI mode. Input: Current directory '{sourceDirectoryToProcess}'";
             }
         }
-        return quality;
+        else
+        {
+            Console.WriteLine("Command-line arguments detected. These are currently ignored.");
+            Console.WriteLine("Using CLI mode on the current working directory.");
+            sourceDirectoryToProcess = currentWorkingDirectory;
+            outputFolderFullPath = Path.Combine(currentWorkingDirectory, DefaultOutputSubfolderName);
+            operationModeMessage = $"MSDBConverter :: CLI mode (args given). Input: Current directory '{sourceDirectoryToProcess}'";
+        }
+
+        try
+        {
+            RunImageConversionLogic(sourceDirectoryToProcess, outputFolderFullPath, operationModeMessage);
+        }
+        catch (UnauthorizedAccessException uaex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Error.WriteLine($"\n[CRITICAL ERROR] Insufficient permissions.");
+            Console.Error.WriteLine($"Could not read from '{sourceDirectoryToProcess}' or write to an output folder within '{Path.GetDirectoryName(outputFolderFullPath)}'.");
+            Console.Error.WriteLine($"Details: {uaex.Message}");
+            Console.ResetColor();
+            Environment.ExitCode = 1;
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Error.WriteLine($"\n[CRITICAL ERROR] An unexpected error occurred:");
+            Console.Error.WriteLine(ex.Message);
+            if (ex.InnerException != null) Console.Error.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+            Console.ResetColor();
+            Environment.ExitCode = 1;
+        }
+        finally
+        {
+            if (useLegacyExitPrompt && Environment.ExitCode == 0)
+            {
+                Console.WriteLine("Press any key to exit.");
+                Console.ReadKey();
+            }
+        }
     }
 
-    static void UpdateProgressBar(int completed, int total)
+    static void RunImageConversionLogic(string sourcePath, string outputConvertedFolderFullPath, string initialMessage)
     {
-        int progressWidth = 50;
-        int progress = (int)((double)completed / total * progressWidth);
+        Console.WriteLine(initialMessage);
 
-        Console.CursorLeft = 0;
-        Console.Write("[");
-        Console.CursorLeft = progressWidth + 1;
-        Console.Write("]");
-        Console.CursorLeft = 1;
+        int fileCountInSource = GetFileCountInDirectory(sourcePath, SearchOption.TopDirectoryOnly);
+        Console.WriteLine($"Scanning '{sourcePath}' (contains {fileCountInSource} total items at the top level)...");
 
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.Write("".PadRight(progress, '='));
-        Console.ForegroundColor = ConsoleColor.Gray;
+        string[] imageExtensions = {
+            ".tif", ".tiff", ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp",
+            ".heic", ".heif",
+            ".psd", ".psb",
+            ".svg",
+            ".3fr", ".ari", ".arw", ".bay", ".crw", ".cr2", ".cr3", ".cap",
+            ".dcs", ".dcr", ".dng", ".drf", ".eip", ".erf", ".fff",
+            ".gpr", ".iiq", ".k25", ".kdc", ".mdc", ".mef", ".mos",
+            ".mrw", ".nef", ".nrw", ".obm", ".orf", ".pef", ".ptx",
+            ".pxn", ".r3d", ".raf", ".raw", ".rwl", ".rw2", ".rwz",
+            ".sr2", ".srf", ".srw", ".x3f"
+        };
+
+        string[] imageFiles = GetFilesWithExtensions(sourcePath, imageExtensions, SearchOption.TopDirectoryOnly);
+
+        Console.WriteLine($"Found {imageFiles.Length} image files to process:");
+        PrintFileNames(imageFiles);
+
+        if (imageFiles.Length > 0)
+        {
+            if (!Directory.Exists(outputConvertedFolderFullPath))
+            {
+                Directory.CreateDirectory(outputConvertedFolderFullPath);
+            }
+
+            string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+            string sessionFolderPath = Path.Combine(outputConvertedFolderFullPath, timestamp);
+            Directory.CreateDirectory(sessionFolderPath);
+
+            int totalFiles = imageFiles.Length;
+            int processedFiles = 0;
+            int successCount = 0;
+            int errorCount = 0;
+            object consoleLock = new object();
+            var progressBar = new SimpleConsoleProgressBar();
+
+            Console.WriteLine("\nConverting...");
+            Console.CursorVisible = false;
+            progressBar.Draw(processedFiles, totalFiles);
+
+            Parallel.ForEach(imageFiles, imageFile =>
+            {
+                bool success = false;
+                string currentFileName = Path.GetFileName(imageFile);
+                try
+                {
+                    ConvertToJpgOrCopyOptimized(imageFile, sessionFolderPath, MaxSizeInMB, MaxDimension);
+                    success = true;
+                }
+                catch (Exception ex)
+                {
+                    lock (consoleLock)
+                    {
+                        Console.Error.WriteLine($"\n[ERROR] Processing {currentFileName}: {ex.Message}");
+                    }
+                }
+                finally
+                {
+                    Interlocked.Increment(ref processedFiles);
+                    if (success) Interlocked.Increment(ref successCount);
+                    else Interlocked.Increment(ref errorCount);
+
+                    lock (consoleLock)
+                    {
+                        progressBar.Draw(processedFiles, totalFiles);
+                    }
+                }
+            });
+
+            Console.CursorVisible = true;
+
+            if (totalFiles == 0 && progressBar.GetCurrentText() != string.Empty)
+            {
+                Console.WriteLine();
+            }
+
+            Console.WriteLine($"\n--- Conversion Summary ---");
+            Console.WriteLine($"Successfully converted: {successCount} file(s)");
+            Console.WriteLine($"Failed to convert:    {errorCount} file(s)");
+            Console.WriteLine($"Output folder:          '{sessionFolderPath}'");
+        }
+        else
+        {
+            Console.WriteLine($"No image files with supported extensions found in '{sourcePath}'.");
+        }
+    }
+    public static void PrintFileNames(string[] files)
+    {
+        if (files.Length == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < files.Length; i++)
+        {
+            Console.WriteLine($"- {Path.GetFileName(files[i])}");
+        }
+        Console.WriteLine();
+    }
+
+    static int GetFileCountInDirectory(string folderPath, SearchOption searchOption)
+    {
+        if (!Directory.Exists(folderPath)) return 0;
+        return Directory.GetFiles(folderPath, "*.*", searchOption).Length;
+    }
+
+    static string[] GetFilesWithExtensions(string folderPath, string[] extensions, SearchOption searchOption)
+    {
+        if (!Directory.Exists(folderPath)) return Array.Empty<string>();
+        return Directory.GetFiles(folderPath, "*.*", searchOption)
+                        .Where(file => extensions.Contains(Path.GetExtension(file).ToLowerInvariant()))
+                        .ToArray();
+    }
+
+    static void ConvertToJpgOrCopyOptimized(string imagePath, string outputFolderPath, double targetMaxSizeMB, int targetMaxDimension)
+    {
+        string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(imagePath);
+        string outputFileName = Path.Combine(outputFolderPath, fileNameWithoutExtension + ".jpg");
+        long targetMaxSizeBytes = (long)(targetMaxSizeMB * 1024 * 1024);
+
+        FileInfo originalFileInfo = new FileInfo(imagePath);
+
+        try
+        {
+            using (var image = new MagickImage(imagePath))
+            {
+                bool isJpg = (image.Format == MagickFormat.Jpg || image.Format == MagickFormat.Jpeg);
+
+                if (isJpg &&
+                    originalFileInfo.Length <= targetMaxSizeBytes &&
+                    image.Width <= targetMaxDimension &&
+                    image.Height <= targetMaxDimension)
+                {
+                    File.Copy(imagePath, outputFileName, true);
+                    return;
+                }
+
+                bool needsResize = image.Width > targetMaxDimension || image.Height > targetMaxDimension;
+                if (needsResize)
+                {
+                    int nonNegativeTargetDimension = targetMaxDimension >= 0 ? targetMaxDimension : 0;
+                    image.Resize(new MagickGeometry((uint)nonNegativeTargetDimension, (uint)nonNegativeTargetDimension)
+                    {
+                        IgnoreAspectRatio = false,
+                        Greater = true
+                    });
+                }
+
+                image.Format = MagickFormat.Jpg;
+                image.Quality = 85;
+
+                image.Write(outputFileName);
+            }
+        }
+        catch (MagickException ex)
+        {
+            throw new Exception($"ImageMagick error processing '{Path.GetFileName(imagePath)}': {ex.Message}", ex);
+        }
     }
 }
