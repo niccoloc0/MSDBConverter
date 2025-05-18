@@ -82,7 +82,8 @@ class Program
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Error.WriteLine($"\n[CRITICAL ERROR] An unexpected error occurred:");
             Console.Error.WriteLine(ex.Message);
-            if (ex.InnerException != null) Console.Error.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+            if (ex.InnerException != null)
+                Console.Error.WriteLine($"Inner Exception: {ex.InnerException.Message}");
             Console.ResetColor();
             Environment.ExitCode = 1;
         }
@@ -124,9 +125,7 @@ class Program
         if (imageFiles.Length > 0)
         {
             if (!Directory.Exists(outputConvertedFolderFullPath))
-            {
                 Directory.CreateDirectory(outputConvertedFolderFullPath);
-            }
 
             string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
             string sessionFolderPath = Path.Combine(outputConvertedFolderFullPath, timestamp);
@@ -141,15 +140,17 @@ class Program
 
             Console.WriteLine("\nConverting...");
             Console.CursorVisible = false;
-            progressBar.Draw(processedFiles, totalFiles);
+            if (totalFiles > 0) 
+                progressBar.Draw(processedFiles, totalFiles);
 
             Parallel.ForEach(imageFiles, imageFile =>
             {
                 bool success = false;
                 string currentFileName = Path.GetFileName(imageFile);
+                string warningMessage = null; 
                 try
                 {
-                    ConvertToJpgOrCopyOptimized(imageFile, sessionFolderPath, MaxSizeInMB, MaxDimension);
+                    warningMessage = ConvertToJpgOrCopyOptimized(imageFile, sessionFolderPath, MaxSizeInMB, MaxDimension);
                     success = true;
                 }
                 catch (Exception ex)
@@ -157,27 +158,35 @@ class Program
                     lock (consoleLock)
                     {
                         Console.Error.WriteLine($"\n[ERROR] Processing {currentFileName}: {ex.Message}");
+                        if (ex.InnerException != null)
+                            Console.Error.WriteLine($"  Inner Exception: {ex.InnerException.Message}");
                     }
                 }
                 finally
                 {
                     Interlocked.Increment(ref processedFiles);
-                    if (success) Interlocked.Increment(ref successCount);
-                    else Interlocked.Increment(ref errorCount);
+                    if (success)
+                        Interlocked.Increment(ref successCount);
+                    else
+                        Interlocked.Increment(ref errorCount);
 
                     lock (consoleLock)
                     {
+                        if (!string.IsNullOrEmpty(warningMessage))
+                        {
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+                            Console.Error.WriteLine($"\n{warningMessage}");
+                            Console.ResetColor();
+                        }
                         progressBar.Draw(processedFiles, totalFiles);
                     }
                 }
             });
 
             Console.CursorVisible = true;
-
-            if (totalFiles == 0 && progressBar.GetCurrentText() != string.Empty)
-            {
-                Console.WriteLine();
-            }
+            
+            if (totalFiles == 0 && !string.IsNullOrEmpty(progressBar.GetCurrentText()))
+                 Console.WriteLine();
 
             Console.WriteLine($"\n--- Conversion Summary ---");
             Console.WriteLine($"Successfully converted: {successCount} file(s)");
@@ -185,39 +194,35 @@ class Program
             Console.WriteLine($"Output folder:          '{sessionFolderPath}'");
         }
         else
-        {
             Console.WriteLine($"No image files with supported extensions found in '{sourcePath}'.");
-        }
     }
+
     public static void PrintFileNames(string[] files)
     {
         if (files.Length == 0)
-        {
             return;
-        }
-
         for (int i = 0; i < files.Length; i++)
-        {
             Console.WriteLine($"- {Path.GetFileName(files[i])}");
-        }
         Console.WriteLine();
     }
 
     static int GetFileCountInDirectory(string folderPath, SearchOption searchOption)
     {
-        if (!Directory.Exists(folderPath)) return 0;
+        if (!Directory.Exists(folderPath))
+            return 0;
         return Directory.GetFiles(folderPath, "*.*", searchOption).Length;
     }
 
     static string[] GetFilesWithExtensions(string folderPath, string[] extensions, SearchOption searchOption)
     {
-        if (!Directory.Exists(folderPath)) return Array.Empty<string>();
+        if (!Directory.Exists(folderPath))
+            return Array.Empty<string>();
         return Directory.GetFiles(folderPath, "*.*", searchOption)
                         .Where(file => extensions.Contains(Path.GetExtension(file).ToLowerInvariant()))
                         .ToArray();
     }
-
-    static void ConvertToJpgOrCopyOptimized(string imagePath, string outputFolderPath, double targetMaxSizeMB, int targetMaxDimension)
+    
+    static string? ConvertToJpgOrCopyOptimized(string imagePath, string outputFolderPath, double targetMaxSizeMB, int targetMaxDimension)
     {
         string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(imagePath);
         string outputFileName = Path.Combine(outputFolderPath, fileNameWithoutExtension + ".jpg");
@@ -229,37 +234,71 @@ class Program
         {
             using (var image = new MagickImage(imagePath))
             {
-                bool isJpg = (image.Format == MagickFormat.Jpg || image.Format == MagickFormat.Jpeg);
+                image.AutoOrient();
+                string originalExtension = Path.GetExtension(imagePath).ToLowerInvariant();
+                bool isOriginalJpg = (originalExtension == ".jpg" || originalExtension == ".jpeg");
 
-                if (isJpg &&
+                if (isOriginalJpg &&
                     originalFileInfo.Length <= targetMaxSizeBytes &&
                     image.Width <= targetMaxDimension &&
                     image.Height <= targetMaxDimension)
                 {
                     File.Copy(imagePath, outputFileName, true);
-                    return;
+                    return null;
                 }
 
-                bool needsResize = image.Width > targetMaxDimension || image.Height > targetMaxDimension;
-                if (needsResize)
+                if (image.Width > targetMaxDimension || image.Height > targetMaxDimension)
                 {
-                    int nonNegativeTargetDimension = targetMaxDimension >= 0 ? targetMaxDimension : 0;
-                    image.Resize(new MagickGeometry((uint)nonNegativeTargetDimension, (uint)nonNegativeTargetDimension)
+                    image.Resize(new MagickGeometry((uint)targetMaxDimension, (uint)targetMaxDimension)
                     {
-                        IgnoreAspectRatio = false,
-                        Greater = true
+                        IgnoreAspectRatio = false
                     });
                 }
 
                 image.Format = MagickFormat.Jpg;
-                image.Quality = 85;
 
-                image.Write(outputFileName);
+                const int minQuality = 50;
+
+                for (int currentQuality = 100; currentQuality >= minQuality; currentQuality--)
+                {
+                    image.Quality = (uint)currentQuality;
+                    image.Write(outputFileName);
+
+                    FileInfo outputFileInfo = new FileInfo(outputFileName);
+                    if (outputFileInfo.Length <= targetMaxSizeBytes)
+                        return null;
+                }
+
+                FileInfo finalAttemptFileInfo = new FileInfo(outputFileName);
+                string warningMessage =
+                    $"[WARN] File '{Path.GetFileName(imagePath)}': Could not achieve target size {targetMaxSizeMB}MB even at quality {minQuality}. " +
+                    $"File saved with quality {minQuality}, final size: {(double)finalAttemptFileInfo.Length / (1024 * 1024):F2}MB.";
+                return warningMessage;
             }
         }
         catch (MagickException ex)
         {
+            if (File.Exists(outputFileName))
+            {
+                try
+                {
+                    File.Delete(outputFileName);
+                }
+                catch { }
+            }
             throw new Exception($"ImageMagick error processing '{Path.GetFileName(imagePath)}': {ex.Message}", ex);
+        }
+        catch (Exception)
+        {
+            if (File.Exists(outputFileName))
+            {
+                try
+                {
+                    File.Delete(outputFileName);
+                }
+                catch { }
+            }
+            throw;
         }
     }
 }
