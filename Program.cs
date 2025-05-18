@@ -236,7 +236,7 @@ class Program
             {
                 image.AutoOrient();
                 string originalExtension = Path.GetExtension(imagePath).ToLowerInvariant();
-                bool isOriginalJpg = (originalExtension == ".jpg" || originalExtension == ".jpeg");
+                bool isOriginalJpg = (image.Format == MagickFormat.Jpg || image.Format == MagickFormat.Jpeg);
 
                 if (isOriginalJpg &&
                     originalFileInfo.Length <= targetMaxSizeBytes &&

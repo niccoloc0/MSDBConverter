@@ -4,7 +4,6 @@
     <AssemblyName>msdbc</AssemblyName>
     <OutputType>Exe</OutputType>
     <ApplicationIcon>obj\Assets\msdbconverter.ico</ApplicationIcon>
-    <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <TargetFramework>net8.0</TargetFramework>
